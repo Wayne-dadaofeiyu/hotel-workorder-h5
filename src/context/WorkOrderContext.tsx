@@ -15,21 +15,12 @@ type Action =
   | { type: 'SHOW_TOAST'; payload: ToastMessage }
   | { type: 'HIDE_TOAST' };
 
-function loadFromStorage(): Partial<AppState> {
+function loadOperatorFromStorage(): string {
   try {
-    const orders = localStorage.getItem(STORAGE_KEY);
-    const operator = localStorage.getItem(OPERATOR_KEY);
-    return {
-      orders: orders ? JSON.parse(orders) : undefined,
-      operator: operator || 'Alex',
-    };
+    return localStorage.getItem(OPERATOR_KEY) || 'Alex';
   } catch {
-    return { orders: undefined, operator: 'Alex' };
+    return 'Alex';
   }
-}
-
-function saveToStorage(orders: WorkOrder[]) {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(orders));
 }
 
 const initialState: AppState = {
@@ -59,7 +50,6 @@ function appReducer(state: AppState, action: Action): AppState {
           ? { ...o, status: 'completed' as const, operator: action.payload.operator, completedAt: new Date().toISOString() }
           : o
       );
-      saveToStorage(newOrders);
       return { ...state, orders: newOrders };
     }
     case 'SET_OPERATOR': {
@@ -68,7 +58,6 @@ function appReducer(state: AppState, action: Action): AppState {
     }
     case 'ADD_ORDER': {
       const newOrders = [action.payload, ...state.orders];
-      saveToStorage(newOrders);
       return { ...state, orders: newOrders };
     }
     case 'SHOW_TOAST':
@@ -91,18 +80,11 @@ interface WorkOrderContextType {
 const WorkOrderContext = createContext<WorkOrderContextType | null>(null);
 
 export function WorkOrderProvider({ children }: { children: React.ReactNode }) {
-  const stored = loadFromStorage();
   const [state, dispatch] = useReducer(appReducer, {
     ...initialState,
-    orders: stored.orders || generateMockOrders(),
-    operator: stored.operator || 'Alex',
+    orders: generateMockOrders(),
+    operator: loadOperatorFromStorage(),
   });
-
-  useEffect(() => {
-    if (stored.orders === null) {
-      saveToStorage(state.orders);
-    }
-  }, []);
 
   const completeOrder = useCallback(
     (orderId: string) => {

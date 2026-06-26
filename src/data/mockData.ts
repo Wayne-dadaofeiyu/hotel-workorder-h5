@@ -7,12 +7,33 @@ export function generateOrderId(): string {
   return `WO-2024-${orderCounter}`;
 }
 
-function minutesFromNow(min: number): string {
-  return new Date(Date.now() + min * 60000).toISOString();
+/**
+ * 演示锚点时间：页面首次加载时记录到 sessionStorage，
+ * 同一次演示（同一 session）内保持不变，
+ * 关闭页面再打开则重置为当前时间。
+ * 所有 mock 数据的相对时间都基于此锚点计算，
+ * 确保每次打开页面时数据都处于"刚发生"的状态。
+ */
+const DEMO_START_KEY = 'hotel-demo-start-time';
+
+function getDemoStartTime(): number {
+  const stored = sessionStorage.getItem(DEMO_START_KEY);
+  if (stored) return parseInt(stored, 10);
+  const now = Date.now();
+  sessionStorage.setItem(DEMO_START_KEY, now.toString());
+  return now;
 }
 
+const DEMO_START = getDemoStartTime();
+
+/** 基于锚点时间：N 分钟前 */
 function minutesAgo(min: number): string {
-  return new Date(Date.now() - min * 60000).toISOString();
+  return new Date(DEMO_START - min * 60000).toISOString();
+}
+
+/** 基于锚点时间：N 分钟后 */
+function minutesFromNow(min: number): string {
+  return new Date(DEMO_START + min * 60000).toISOString();
 }
 
 export function generateMockOrders(): WorkOrder[] {
@@ -196,7 +217,7 @@ export function generateNewOrder(): WorkOrder {
   const isDelivery = Math.random() > 0.4;
   const type = isDelivery ? 'delivery' as const : 'cleaning' as const;
 
-  const now = new Date();
+  const now = Date.now();
 
   return {
     id: generateOrderId(),
@@ -207,9 +228,9 @@ export function generateNewOrder(): WorkOrder {
     description: isDelivery
       ? deliveryItems[Math.floor(Math.random() * deliveryItems.length)]
       : cleaningItems[Math.floor(Math.random() * cleaningItems.length)],
-    orderedAt: now.toISOString(),
+    orderedAt: new Date(now).toISOString(),
     scheduledAt: isDelivery ? undefined : (() => {
-      const scheduled = new Date(now.getTime() + (1 + Math.random() * 3) * 3600000);
+      const scheduled = new Date(now + (1 + Math.random() * 3) * 3600000);
       return scheduled.toISOString();
     })(),
     status: 'pending',
