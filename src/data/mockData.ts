@@ -7,13 +7,55 @@ export function generateOrderId(): string {
   return `WO-2024-${orderCounter}`;
 }
 
-/**
- * 演示锚点时间：页面首次加载时记录到 sessionStorage，
- * 同一次演示（同一 session）内保持不变，
- * 关闭页面再打开则重置为当前时间。
- * 所有 mock 数据的相对时间都基于此锚点计算，
- * 确保每次打开页面时数据都处于"刚发生"的状态。
- */
+// ============================================================
+//  会话种子机制：同一 session 内数据保持一致，
+//  不同人打开或新标签页打开则生成不同的随机数据。
+// ============================================================
+const SEED_KEY = 'hotel-demo-seed';
+
+function getSessionSeed(): number {
+  const stored = sessionStorage.getItem(SEED_KEY);
+  if (stored) return parseInt(stored, 10);
+  const seed = Math.floor(Math.random() * 1000000);
+  sessionStorage.setItem(SEED_KEY, seed.toString());
+  return seed;
+}
+
+/** 基于种子的伪随机数生成器（Mulberry32 算法变体） */
+class SeededRandom {
+  private s: number;
+  constructor(seed: number) { this.s = seed | 0; }
+  /** 返回 [0, 1) */
+  next(): number {
+    this.s = (this.s * 16807) % 2147483647;
+    return (this.s - 1) / 2147483646;
+  }
+  /** 返回 [min, max) 的整数 */
+  int(min: number, max: number): number {
+    return Math.floor(this.next() * (max - min)) + min;
+  }
+  /** 从数组中随机选取一个元素 */
+  pick<T>(arr: T[]): T {
+    return arr[this.int(0, arr.length)];
+  }
+  /** 打乱数组（Fisher-Yates） */
+  shuffle<T>(arr: T[]): T[] {
+    const result = [...arr];
+    for (let i = result.length - 1; i > 0; i--) {
+      const j = this.int(0, i + 1);
+      [result[i], result[j]] = [result[j], result[i]];
+    }
+    return result;
+  }
+  /** 返回 true/false，概率为 prob */
+  chance(prob: number): boolean {
+    return this.next() < prob;
+  }
+}
+
+// ============================================================
+//  演示锚点时间
+// ============================================================
 const DEMO_START_KEY = 'hotel-demo-start-time';
 
 function getDemoStartTime(): number {
@@ -36,153 +78,206 @@ function minutesFromNow(min: number): string {
   return new Date(DEMO_START + min * 60000).toISOString();
 }
 
-export function generateMockOrders(): WorkOrder[] {
-  return [
-    // ============================================================
-    //  Delivery orders (6 total)
-    //  URGENT: orderedAt > 15 min → #5 (26 min), #6 (36 min)
-    //  Normal: #1-#4 within 15 min
-    // ============================================================
-    {
-      id: generateOrderId(),
-      type: 'delivery',
-      roomNumber: '1208',
-      guestName: 'James Wilson',
-      isInRoom: true,
-      description: 'Extra towels (4) and 2 soft pillows',
-      specialNotes: 'Guest prefers white towels, please deliver to door if no answer',
-      orderedAt: minutesAgo(3),
-      status: 'pending',
-    },
-    {
-      id: generateOrderId(),
-      type: 'delivery',
-      roomNumber: '1512',
-      guestName: 'Robert Chen',
-      isInRoom: true,
-      description: 'Room service menu and wine glass set',
-      specialNotes: 'Guest requested red wine glasses specifically',
-      orderedAt: minutesAgo(7),
-      status: 'pending',
-    },
-    {
-      id: generateOrderId(),
-      type: 'delivery',
-      roomNumber: '2003',
-      guestName: 'David Kim',
-      isInRoom: false,
-      description: 'Iron and ironing board',
-      specialNotes: 'Guest will return later, please leave at front desk',
-      orderedAt: minutesAgo(9),
-      status: 'pending',
-    },
-    {
-      id: generateOrderId(),
-      type: 'delivery',
-      roomNumber: '0618',
-      guestName: 'Emma Thompson',
-      isInRoom: true,
-      description: 'Extra blanket and hot water kettle',
-      orderedAt: minutesAgo(13),
-      status: 'pending',
-    },
-    {
-      id: generateOrderId(),
-      type: 'delivery',
-      roomNumber: '1107',
-      guestName: 'Lisa Wang',
-      isInRoom: true,
-      description: 'Toiletries set - toothbrush, toothpaste, shampoo',
-      orderedAt: minutesAgo(26),
-      status: 'pending',
-    },
-    {
-      id: generateOrderId(),
-      type: 'delivery',
-      roomNumber: '0815',
-      guestName: 'Priya Patel',
-      isInRoom: false,
-      description: 'Late night snack menu and water bottles (6)',
-      orderedAt: minutesAgo(36),
-      status: 'pending',
-    },
+// ============================================================
+//  数据池（45 人名, 34 房间号, 20 送物描述, 20 打扫描述, 14 备注）
+// ============================================================
+const GUEST_NAMES = [
+  'James Wilson', 'Robert Chen', 'David Kim', 'Emma Thompson', 'Lisa Wang',
+  'Priya Patel', 'Maria Garcia', 'Sarah Johnson', 'Michael Brown', 'Anna Lee',
+  'John Anderson', 'Tom Davis', 'Chris Baker', 'Sophie Martin', 'Oliver Clark',
+  'Yuki Tanaka', 'Mohammed Ali', 'Hannah White', 'Daniel Park', 'Rachel Green',
+  'Kevin Hart', 'Grace Kim', 'Oscar Silva', 'Iris Zhang', 'Leo Wang',
+  'Julia Fischer', 'Marco Rossi', 'Aiko Sato', 'Frank Murphy', 'Catherine Bell',
+  'Ryan Cooper', 'Amanda Lewis', 'Nina Ivanova', 'Pedro Santos', 'Emily Turner',
+  'George Hill', 'Zoe Baker', 'Henry Wright', 'Clara Schmidt', 'Felix Weber',
+  'Luna Chen', 'Raj Sharma', 'Mia Andersson', 'Thomas Grey', 'Sophia Cruz',
+];
 
-    // ============================================================
-    //  Cleaning orders (6 total)
-    //  URGENT: scheduledAt within 30 min → #5 (26 min ordered, 15 min to scheduled)
-    //                                            #6 (36 min ordered, 10 min to scheduled)
-    //  Normal: #1-#4 scheduled well ahead
-    // ============================================================
-    {
-      id: generateOrderId(),
-      type: 'cleaning',
-      roomNumber: '0905',
-      guestName: 'Maria Garcia',
-      isInRoom: false,
-      description: 'Deep cleaning required - guest checked out',
-      specialNotes: 'Please change all linens and sanitize bathroom thoroughly',
-      orderedAt: minutesAgo(4),
-      scheduledAt: minutesFromNow(90),
-      status: 'pending',
-    },
-    {
-      id: generateOrderId(),
-      type: 'cleaning',
-      roomNumber: '1710',
-      guestName: 'Sarah Johnson',
-      isInRoom: true,
-      description: 'Towel refresh and bed making',
-      orderedAt: minutesAgo(8),
-      scheduledAt: minutesFromNow(120),
-      status: 'pending',
-    },
-    {
-      id: generateOrderId(),
-      type: 'cleaning',
-      roomNumber: '1302',
-      guestName: 'Michael Brown',
-      isInRoom: false,
-      description: 'Standard room cleaning',
-      specialNotes: 'Guest has allergy - use hypoallergenic cleaner only',
-      orderedAt: minutesAgo(11),
-      scheduledAt: minutesFromNow(60),
-      status: 'pending',
-    },
-    {
-      id: generateOrderId(),
-      type: 'cleaning',
-      roomNumber: '2201',
-      guestName: 'Anna Lee',
-      isInRoom: false,
-      description: 'Bathroom deep clean only',
-      orderedAt: minutesAgo(14),
-      scheduledAt: minutesFromNow(75),
-      status: 'pending',
-    },
-    {
-      id: generateOrderId(),
-      type: 'cleaning',
-      roomNumber: '1005',
-      guestName: 'John Anderson',
-      isInRoom: true,
-      description: 'Full room cleaning and linen change',
-      specialNotes: 'Please clean balcony as well, guest is working from room',
-      orderedAt: minutesAgo(26),
-      scheduledAt: minutesFromNow(15),
-      status: 'pending',
-    },
-    {
-      id: generateOrderId(),
-      type: 'cleaning',
-      roomNumber: '2108',
-      guestName: 'Tom Davis',
-      isInRoom: false,
-      description: 'Quick tidy up before next guest arrives',
-      orderedAt: minutesAgo(36),
-      scheduledAt: minutesFromNow(10),
-      status: 'pending',
-    },
+const ROOM_NUMBERS = [
+  '0401', '0408', '0505', '0512', '0603', '0618', '0709', '0802',
+  '0815', '0901', '0905', '1003', '1005', '1107', '1201', '1203',
+  '1206', '1208', '1210', '1302', '1305', '1415', '1508', '1512',
+  '1608', '1703', '1710', '1812', '1905', '2003', '2008', '2105',
+  '2108', '2201', '2207',
+];
+
+const DELIVERY_ITEMS = [
+  'Extra towels (4) and 2 soft pillows',
+  'Room service menu and wine glass set',
+  'Iron and ironing board',
+  'Extra blanket and hot water kettle',
+  'Toiletries set - toothbrush, toothpaste, shampoo',
+  'Late night snack menu and water bottles (6)',
+  'Coffee maker and coffee pods',
+  'Mini fridge restocking - drinks and snacks',
+  'Laundry bag and detergent',
+  'Slippers and bathrobe set',
+  'Fruit basket and welcome drink',
+  'Extension cord and power adapter',
+  'Sewing kit and shoe shine',
+  'Newspaper and magazine delivery',
+  'Spa menu and reservation card',
+  'Baby crib and extra bedding',
+  'Gym towel and yoga mat',
+  'Champagne bucket and glasses',
+  'First aid kit and insect repellent',
+  'Umbrella and raincoat set',
+];
+
+const CLEANING_ITEMS = [
+  'Deep cleaning required - guest checked out',
+  'Towel refresh and bed making',
+  'Standard room cleaning',
+  'Bathroom deep clean only',
+  'Full room cleaning and linen change',
+  'Quick tidy up before next guest arrives',
+  'Floor vacuum and dusting',
+  'Window cleaning and minibar restock',
+  'Turndown service with chocolate',
+  'Pet area deep sanitization',
+  'Allergy-free deep clean (hypoallergenic)',
+  'Post-party room restoration',
+  'Linen change and mattress rotation',
+  'Carpet steam cleaning',
+  'Air purifier filter replacement',
+  'Balcony and terrace cleaning',
+  'Shoe polishing station setup',
+  'Curtain and upholstery refresh',
+  'Mold inspection and treatment',
+  'Quarterly spring cleaning',
+];
+
+const SPECIAL_NOTES_POOL: (string | undefined)[] = [
+  'Guest prefers white towels, please deliver to door if no answer',
+  'Guest requested red wine glasses specifically',
+  'Guest will return later, please leave at front desk',
+  'Please change all linens and sanitize bathroom thoroughly',
+  'Guest has allergy - use hypoallergenic cleaner only',
+  'Please clean balcony as well, guest is working from room',
+  'VIP guest - priority handling required',
+  'Guest is celebrating anniversary - extra care please',
+  'Knock twice and announce yourself loudly',
+  'Do not disturb before 10 AM',
+  'Guest speaks only French - use translation app',
+  'Child in room - be extra quiet',
+  undefined,
+  undefined,
+  undefined,
+  undefined,
+];
+
+// ============================================================
+//  1205 演示用房 - 专用数据池
+// ============================================================
+const DEMO_ROOM = '1205';
+const DEMO_GUEST_NAMES = [
+  'James Wilson', 'Sarah Johnson', 'Robert Chen',
+  'Emma Thompson', 'Maria Garcia', 'Michael Brown',
+];
+
+const DEMO_DELIVERY_ITEMS = [
+  'Extra towels (4) and 2 soft pillows',
+  'Room service menu and wine glass set',
+  'Toiletries set - toothbrush, toothpaste, shampoo',
+  'Coffee maker and coffee pods',
+  'Fruit basket and welcome drink',
+  'Baby crib and extra bedding',
+];
+
+const DEMO_CLEANING_ITEMS = [
+  'Standard room cleaning',
+  'Towel refresh and bed making',
+  'Turndown service with chocolate',
+  'Full room cleaning and linen change',
+];
+
+// ============================================================
+//  随机生成 Mock 数据
+// ============================================================
+
+/** 生成一条随机的非 1205 房订单 */
+function randomOrder(rng: SeededRandom, minutesAgoMin: number, minutesAgoMax: number): WorkOrder {
+  const isDelivery = rng.chance(0.55);
+  const type = isDelivery ? 'delivery' as const : 'cleaning' as const;
+  const orderedMin = rng.int(minutesAgoMin, minutesAgoMax);
+
+  const base: WorkOrder = {
+    id: generateOrderId(),
+    type,
+    roomNumber: rng.pick(ROOM_NUMBERS),
+    guestName: rng.pick(GUEST_NAMES),
+    isInRoom: rng.chance(0.7),
+    description: isDelivery
+      ? rng.pick(DELIVERY_ITEMS)
+      : rng.pick(CLEANING_ITEMS),
+    orderedAt: minutesAgo(orderedMin),
+    status: 'pending',
+  };
+
+  const note = rng.pick(SPECIAL_NOTES_POOL);
+  if (note) base.specialNotes = note;
+
+  if (!isDelivery) {
+    // cleaning: scheduledAt = orderedAt + 15~120 min
+    const scheduleIn = rng.int(15, 120);
+    base.scheduledAt = minutesFromNow(scheduleIn - orderedMin);
+  }
+
+  return base;
+}
+
+/** 生成一条 1205 演示用房订单（时间较新，显眼） */
+function demoOrder(rng: SeededRandom, orderType: 'delivery' | 'cleaning', minutesAgoVal: number): WorkOrder {
+  const items = orderType === 'delivery' ? DEMO_DELIVERY_ITEMS : DEMO_CLEANING_ITEMS;
+  const base: WorkOrder = {
+    id: generateOrderId(),
+    type: orderType,
+    roomNumber: DEMO_ROOM,
+    guestName: rng.pick(DEMO_GUEST_NAMES),
+    isInRoom: true,
+    description: rng.pick(items),
+    orderedAt: minutesAgo(minutesAgoVal),
+    status: 'pending',
+  };
+
+  if (orderType === 'cleaning') {
+    const scheduleIn = rng.int(20, 60);
+    base.scheduledAt = minutesFromNow(scheduleIn - minutesAgoVal);
+  }
+
+  return base;
+}
+
+export function generateMockOrders(): WorkOrder[] {
+  const seed = getSessionSeed();
+  const rng = new SeededRandom(seed);
+
+  // --- 1205 演示用房：2~3 条，时间较新，排在最前面 ---
+  const demoCount = rng.int(2, 4); // 2~3
+  const demoOrders: WorkOrder[] = [];
+  for (let i = 0; i < demoCount; i++) {
+    const orderType = rng.chance(0.5) ? 'delivery' : 'cleaning';
+    const ago = rng.int(1, 8); // 1~8 分钟前
+    demoOrders.push(demoOrder(rng, orderType, ago));
+  }
+
+  // --- 其他房间：6~12 条 ---
+  const otherCount = rng.int(6, 13); // 6~12
+  const otherOrders: WorkOrder[] = [];
+  for (let i = 0; i < otherCount; i++) {
+    // 时间分布在 1~40 分钟前，制造急单/普通单的混搭效果
+    otherOrders.push(randomOrder(rng, 1, 40));
+  }
+
+  // 1205 房排最前，其他按时间倒序（越新的越前）
+  const allOrders = [
+    ...demoOrders,
+    ...otherOrders.sort(
+      (a, b) => new Date(b.orderedAt).getTime() - new Date(a.orderedAt).getTime()
+    ),
   ];
+
+  return allOrders;
 }
 
 export const MOCK_OPERATORS: Operator[] = [
