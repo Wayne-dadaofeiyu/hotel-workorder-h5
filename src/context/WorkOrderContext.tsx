@@ -80,6 +80,9 @@ interface WorkOrderContextType {
 const WorkOrderContext = createContext<WorkOrderContextType | null>(null);
 
 export function WorkOrderProvider({ children }: { children: React.ReactNode }) {
+  // 清除旧版本遗留的 localStorage 数据，避免累积旧订单
+  localStorage.removeItem(STORAGE_KEY);
+
   const [state, dispatch] = useReducer(appReducer, {
     ...initialState,
     orders: generateMockOrders(),
