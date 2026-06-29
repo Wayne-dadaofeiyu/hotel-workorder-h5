@@ -193,91 +193,95 @@ const DEMO_CLEANING_ITEMS = [
 
 // ============================================================
 //  随机生成 Mock 数据
+//  规则：同一服务类型下，每个房号最多出现 1 次
+//  1205 演示用房始终 1 送物 + 1 打扫，排在最前面
 // ============================================================
-
-/** 生成一条随机的非 1205 房订单 */
-function randomOrder(rng: SeededRandom, minutesAgoMin: number, minutesAgoMax: number): WorkOrder {
-  const isDelivery = rng.chance(0.55);
-  const type = isDelivery ? 'delivery' as const : 'cleaning' as const;
-  const orderedMin = rng.int(minutesAgoMin, minutesAgoMax);
-
-  const base: WorkOrder = {
-    id: generateOrderId(),
-    type,
-    roomNumber: rng.pick(ROOM_NUMBERS),
-    guestName: rng.pick(GUEST_NAMES),
-    isInRoom: rng.chance(0.7),
-    description: isDelivery
-      ? rng.pick(DELIVERY_ITEMS)
-      : rng.pick(CLEANING_ITEMS),
-    orderedAt: minutesAgo(orderedMin),
-    status: 'pending',
-  };
-
-  const note = rng.pick(SPECIAL_NOTES_POOL);
-  if (note) base.specialNotes = note;
-
-  if (!isDelivery) {
-    // cleaning: scheduledAt = orderedAt + 15~120 min
-    const scheduleIn = rng.int(15, 120);
-    base.scheduledAt = minutesFromNow(scheduleIn - orderedMin);
-  }
-
-  return base;
-}
-
-/** 生成一条 1205 演示用房订单（时间较新，显眼） */
-function demoOrder(rng: SeededRandom, orderType: 'delivery' | 'cleaning', minutesAgoVal: number): WorkOrder {
-  const items = orderType === 'delivery' ? DEMO_DELIVERY_ITEMS : DEMO_CLEANING_ITEMS;
-  const base: WorkOrder = {
-    id: generateOrderId(),
-    type: orderType,
-    roomNumber: DEMO_ROOM,
-    guestName: rng.pick(DEMO_GUEST_NAMES),
-    isInRoom: true,
-    description: rng.pick(items),
-    orderedAt: minutesAgo(minutesAgoVal),
-    status: 'pending',
-  };
-
-  if (orderType === 'cleaning') {
-    const scheduleIn = rng.int(20, 60);
-    base.scheduledAt = minutesFromNow(scheduleIn - minutesAgoVal);
-  }
-
-  return base;
-}
 
 export function generateMockOrders(): WorkOrder[] {
   const seed = getSessionSeed();
   const rng = new SeededRandom(seed);
 
-  // --- 1205 演示用房：2~3 条，时间较新，排在最前面 ---
-  const demoCount = rng.int(2, 4); // 2~3
-  const demoOrders: WorkOrder[] = [];
-  for (let i = 0; i < demoCount; i++) {
-    const orderType = rng.chance(0.5) ? 'delivery' : 'cleaning';
-    const ago = rng.int(1, 8); // 1~8 分钟前
-    demoOrders.push(demoOrder(rng, orderType, ago));
+  const orders: WorkOrder[] = [];
+
+  // --- 1205 演示用房：始终 1 送物 + 1 打扫，时间最新，排在最前面 ---
+  const demoGuest = rng.pick(DEMO_GUEST_NAMES);
+
+  // 1205 送物
+  orders.push({
+    id: generateOrderId(),
+    type: 'delivery',
+    roomNumber: DEMO_ROOM,
+    guestName: demoGuest,
+    isInRoom: true,
+    description: rng.pick(DEMO_DELIVERY_ITEMS),
+    orderedAt: minutesAgo(rng.int(1, 4)),
+    status: 'pending',
+  });
+
+  // 1205 打扫
+  const cleaningAgo = rng.int(1, 5);
+  orders.push({
+    id: generateOrderId(),
+    type: 'cleaning',
+    roomNumber: DEMO_ROOM,
+    guestName: demoGuest,
+    isInRoom: true,
+    description: rng.pick(DEMO_CLEANING_ITEMS),
+    orderedAt: minutesAgo(cleaningAgo),
+    scheduledAt: minutesFromNow(rng.int(25, 60) - cleaningAgo),
+    status: 'pending',
+  });
+
+  // --- 其他房间：每个房间在每个服务类型下最多 1 条 ---
+  const deliveryCount = rng.int(3, 7);  // 3~6 条送物
+  const cleaningCount = rng.int(3, 7);  // 3~6 条打扫
+
+  // 送物：从打乱的房间池中取不重复的房间
+  const deliveryRooms = rng.shuffle([...ROOM_NUMBERS]).slice(0, deliveryCount);
+  for (const room of deliveryRooms) {
+    const ago = rng.int(3, 40);
+    const note = rng.pick(SPECIAL_NOTES_POOL);
+    const order: WorkOrder = {
+      id: generateOrderId(),
+      type: 'delivery',
+      roomNumber: room,
+      guestName: rng.pick(GUEST_NAMES),
+      isInRoom: rng.chance(0.7),
+      description: rng.pick(DELIVERY_ITEMS),
+      orderedAt: minutesAgo(ago),
+      status: 'pending',
+    };
+    if (note) order.specialNotes = note;
+    orders.push(order);
   }
 
-  // --- 其他房间：6~12 条 ---
-  const otherCount = rng.int(6, 13); // 6~12
-  const otherOrders: WorkOrder[] = [];
-  for (let i = 0; i < otherCount; i++) {
-    // 时间分布在 1~40 分钟前，制造急单/普通单的混搭效果
-    otherOrders.push(randomOrder(rng, 1, 40));
+  // 打扫：重新打乱房间池，取不重复的房间
+  const cleaningRooms = rng.shuffle([...ROOM_NUMBERS]).slice(0, cleaningCount);
+  for (const room of cleaningRooms) {
+    const ago = rng.int(3, 40);
+    const note = rng.pick(SPECIAL_NOTES_POOL);
+    const order: WorkOrder = {
+      id: generateOrderId(),
+      type: 'cleaning',
+      roomNumber: room,
+      guestName: rng.pick(GUEST_NAMES),
+      isInRoom: rng.chance(0.3), // 打扫时客人多半不在房
+      description: rng.pick(CLEANING_ITEMS),
+      orderedAt: minutesAgo(ago),
+      scheduledAt: minutesFromNow(rng.int(15, 120) - ago),
+      status: 'pending',
+    };
+    if (note) order.specialNotes = note;
+    orders.push(order);
   }
 
-  // 1205 房排最前，其他按时间倒序（越新的越前）
-  const allOrders = [
-    ...demoOrders,
-    ...otherOrders.sort(
-      (a, b) => new Date(b.orderedAt).getTime() - new Date(a.orderedAt).getTime()
-    ),
-  ];
+  // 1205 房始终排最前，其余按时间倒序
+  const demoOrders = orders.filter(o => o.roomNumber === DEMO_ROOM);
+  const otherOrders = orders
+    .filter(o => o.roomNumber !== DEMO_ROOM)
+    .sort((a, b) => new Date(b.orderedAt).getTime() - new Date(a.orderedAt).getTime());
 
-  return allOrders;
+  return [...demoOrders, ...otherOrders];
 }
 
 export const MOCK_OPERATORS: Operator[] = [
