@@ -49,7 +49,7 @@ export function OrderCard({ order }: OrderCardProps) {
       onClick={handleClick}
       className={`relative rounded-3xl p-4 mb-3 cursor-pointer transition-all hover:shadow-xl active:scale-[0.99] ${
         urgent
-          ? 'bg-white border-l-4 border-red-500 shadow-md shadow-red-500/10'
+          ? 'bg-white border-l-4 border-red-500 shadow-md shadow-red-500/10 urgent-pulse'
           : 'bg-white/90 backdrop-blur-sm shadow-sm hover:shadow-sky-500/10'
       }`}
       style={{

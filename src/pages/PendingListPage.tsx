@@ -13,7 +13,6 @@ export function PendingListPage() {
 
   const filteredOrders = state.orders.filter((o) => {
     if (o.status === 'completed') return false;
-    if (state.activeTab === 'all') return true;
     return o.type === state.activeTab;
   });
 
@@ -27,12 +26,14 @@ export function PendingListPage() {
   useEffect(() => {
     const interval = setInterval(() => {
       if (Math.random() > 0.5) {
-        const newOrder = generateNewOrder();
-        dispatch({ type: 'ADD_ORDER', payload: newOrder });
-        showToast(
-          `New ${newOrder.type} request from Room ${newOrder.roomNumber}`,
-          'info'
-        );
+        const newOrder = generateNewOrder(state.orders);
+        if (newOrder) {
+          dispatch({ type: 'ADD_ORDER', payload: newOrder });
+          showToast(
+            `New ${newOrder.type} request from Room ${newOrder.roomNumber}`,
+            'info'
+          );
+        }
       }
     }, 30000);
     return () => clearInterval(interval);
@@ -40,12 +41,14 @@ export function PendingListPage() {
 
   const handleSimulateOrder = () => {
     setIsSimulating(true);
-    const newOrder = generateNewOrder();
-    dispatch({ type: 'ADD_ORDER', payload: newOrder });
-    showToast(
-      `New ${newOrder.type} request from Room ${newOrder.roomNumber}`,
-      'info'
-    );
+    const newOrder = generateNewOrder(state.orders);
+    if (newOrder) {
+      dispatch({ type: 'ADD_ORDER', payload: newOrder });
+      showToast(
+        `New ${newOrder.type} request from Room ${newOrder.roomNumber}`,
+        'info'
+      );
+    }
     setTimeout(() => setIsSimulating(false), 1000);
   };
 

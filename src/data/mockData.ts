@@ -228,7 +228,7 @@ export function generateMockOrders(): WorkOrder[] {
     isInRoom: true,
     description: rng.pick(DEMO_CLEANING_ITEMS),
     orderedAt: minutesAgo(cleaningAgo),
-    scheduledAt: minutesFromNow(rng.int(25, 60) - cleaningAgo),
+    scheduledAt: minutesFromNow(rng.int(25, 60)),
     status: 'pending',
   });
 
@@ -268,7 +268,7 @@ export function generateMockOrders(): WorkOrder[] {
       isInRoom: rng.chance(0.3), // 打扫时客人多半不在房
       description: rng.pick(CLEANING_ITEMS),
       orderedAt: minutesAgo(ago),
-      scheduledAt: minutesFromNow(rng.int(15, 120) - ago),
+      scheduledAt: minutesFromNow(rng.int(20, 120)),
       status: 'pending',
     };
     if (note) order.specialNotes = note;
@@ -292,7 +292,7 @@ export const MOCK_OPERATORS: Operator[] = [
   { id: 'op5', name: 'Casey', avatar: '👩‍🔧' },
 ];
 
-export function generateNewOrder(): WorkOrder {
+export function generateNewOrder(existingOrders?: WorkOrder[]): WorkOrder | null {
   const deliveryItems = [
     'Extra towels and toiletries',
     'Coffee maker and coffee pods',
@@ -310,18 +310,33 @@ export function generateNewOrder(): WorkOrder {
     'Bed making and linen change',
   ];
 
-  const rooms = ['0408', '0512', '0709', '1003', '1415', '1608', '1812', '2105'];
+  const allRooms = [
+    '0408', '0512', '0709', '1003', '1415', '1608', '1812', '2105',
+    '0401', '0505', '0603', '0802', '0901', '1107', '1201', '1203',
+    '1206', '1208', '1302', '1508', '1703', '1905', '2003', '2108',
+  ];
   const guestNames = ['Chris Lee', 'Anna Smith', 'Tom Davis', 'Lucy Liu', 'Mark Taylor', 'Nina Patel'];
 
   const isDelivery = Math.random() > 0.4;
   const type = isDelivery ? 'delivery' as const : 'cleaning' as const;
+
+  // 排除已有同类型待处理工单的房间
+  const usedRooms = new Set(
+    (existingOrders || [])
+      .filter((o) => o.type === type && o.status !== 'completed')
+      .map((o) => o.roomNumber)
+  );
+  const availableRooms = allRooms.filter((r) => !usedRooms.has(r));
+
+  // 无可选房间时跳过
+  if (availableRooms.length === 0) return null;
 
   const now = Date.now();
 
   return {
     id: generateOrderId(),
     type,
-    roomNumber: rooms[Math.floor(Math.random() * rooms.length)],
+    roomNumber: availableRooms[Math.floor(Math.random() * availableRooms.length)],
     guestName: guestNames[Math.floor(Math.random() * guestNames.length)],
     isInRoom: Math.random() > 0.5,
     description: isDelivery

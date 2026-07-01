@@ -33,6 +33,16 @@ export function HistoryPage() {
     return new Date(o.completedAt).toDateString() === today;
   }).length;
 
+  const avgMinutes = useMemo(() => {
+    const times = completedOrders
+      .filter((o) => o.orderedAt && o.completedAt)
+      .map((o) => (new Date(o.completedAt!).getTime() - new Date(o.orderedAt).getTime()) / 60000);
+    if (times.length === 0) return '--';
+    const avg = Math.round(times.reduce((a, b) => a + b, 0) / times.length);
+    if (avg < 60) return `${avg}m`;
+    return `${Math.floor(avg / 60)}h ${avg % 60}m`;
+  }, [completedOrders]);
+
   const formatTime = (iso: string) => {
     const d = new Date(iso);
     return d.toLocaleString('en-US', {
@@ -99,9 +109,7 @@ export function HistoryPage() {
             <div className="flex items-center justify-center gap-1 text-amber-500 mb-1">
               <Clock size={16} />
             </div>
-            <p className="text-xl font-black text-slate-800">
-              {completedOrders.length > 0 ? '12m' : '--'}
-            </p>
+            <p className="text-xl font-black text-slate-800">{avgMinutes}</p>
             <p className="text-[10px] text-slate-400 font-medium">Avg Time</p>
           </div>
         </div>

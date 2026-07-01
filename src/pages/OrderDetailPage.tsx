@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { motion } from 'framer-motion';
-import { ArrowLeft, CheckCircle2, Clock, Circle, Package, Sparkles, User, Calendar } from 'lucide-react';
+import { ArrowLeft, CheckCircle2, Clock, Package, Sparkles, User, Calendar } from 'lucide-react';
 import { useWorkOrder } from '../context/WorkOrderContext';
 import { ConfirmModal } from '../components/common/ConfirmModal';
 import { InRoomBadge } from '../components/common/InRoomBadge';

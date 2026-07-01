@@ -1,4 +1,4 @@
-import { Package, Clock, Home } from 'lucide-react';
+import { Clock, Home } from 'lucide-react';
 import { useWorkOrder } from '../../context/WorkOrderContext';
 
 export function BottomNav() {
