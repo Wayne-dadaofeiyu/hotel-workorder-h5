@@ -1,15 +1,20 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Package, Sparkles, BellPlus } from 'lucide-react';
+import { Package } from 'lucide-react';
 import { TabBar } from '../components/pending/TabBar';
 import { OrderCard } from '../components/pending/OrderCard';
+
 import { useWorkOrder } from '../context/WorkOrderContext';
-import { generateNewOrder } from '../data/mockData';
+import { generateNewOrder, generateOrderId } from '../data/mockData';
+import type { WorkOrder } from '../types/workOrder';
+
+const DEMO_ROOM = '0314';
+const DEMO_GUEST = 'David';
 
 export function PendingListPage() {
   const { state, dispatch, showToast } = useWorkOrder();
-  const [isSimulating, setIsSimulating] = useState(false);
   const [tick, setTick] = useState(0);
+  const demo0314Fired = useRef(false);
 
   const filteredOrders = state.orders.filter((o) => {
     if (o.status === 'completed') return false;
@@ -22,8 +27,42 @@ export function PendingListPage() {
     return () => clearInterval(interval);
   }, []);
 
-  // Simulate new order every 30s in demo mode
+  // Demo: when switching to Cleaning tab, auto-inject Room 0314 order (once per session)
   useEffect(() => {
+    if (state.activeTab !== 'cleaning' || demo0314Fired.current) return;
+
+    // Check if Room 0314 already has a pending cleaning order
+    const exists = state.orders.some(
+      (o) => o.roomNumber === DEMO_ROOM && o.type === 'cleaning' && o.status !== 'completed'
+    );
+    if (exists) return;
+
+    demo0314Fired.current = true;
+    const timer = setTimeout(() => {
+      const now = Date.now();
+      const newOrder: WorkOrder = {
+        id: generateOrderId(),
+        type: 'cleaning',
+        roomNumber: DEMO_ROOM,
+        guestName: DEMO_GUEST,
+        isInRoom: true,
+        description: 'Standard room cleaning - guest request',
+        specialNotes: 'Guest is waiting in the room',
+        orderedAt: new Date(now).toISOString(),
+        scheduledAt: new Date(now + 30 * 60000).toISOString(),
+        status: 'pending',
+      };
+      dispatch({ type: 'ADD_ORDER', payload: newOrder });
+      showToast(`New cleaning request from Room ${DEMO_ROOM}`, 'success');
+    }, 600);
+
+    return () => clearTimeout(timer);
+  }, [state.activeTab, dispatch, showToast]);
+
+  // Simulate new order every 30s in demo mode (only when on Delivery tab)
+  useEffect(() => {
+    if (state.activeTab === 'cleaning') return;
+
     const interval = setInterval(() => {
       if (Math.random() > 0.5) {
         const newOrder = generateNewOrder(state.orders);
@@ -37,24 +76,10 @@ export function PendingListPage() {
       }
     }, 30000);
     return () => clearInterval(interval);
-  }, [dispatch, showToast]);
-
-  const handleSimulateOrder = () => {
-    setIsSimulating(true);
-    const newOrder = generateNewOrder(state.orders);
-    if (newOrder) {
-      dispatch({ type: 'ADD_ORDER', payload: newOrder });
-      showToast(
-        `New ${newOrder.type} request from Room ${newOrder.roomNumber}`,
-        'info'
-      );
-    }
-    setTimeout(() => setIsSimulating(false), 1000);
-  };
+  }, [state.activeTab, state.orders, dispatch, showToast]);
 
   return (
     <div className="h-full flex flex-col bg-gradient-to-b from-sky-50/50 to-white">
-      {/* Tab Bar */}
       <div className="pt-14">
         <TabBar />
       </div>
@@ -66,14 +91,6 @@ export function PendingListPage() {
           <p className="text-sm text-slate-500">
             <span className="font-bold text-slate-700">{filteredOrders.length}</span> pending orders
           </p>
-          <button
-            onClick={handleSimulateOrder}
-            disabled={isSimulating}
-            className="flex items-center gap-1.5 text-xs font-semibold text-sky-500 bg-sky-50 px-3 py-1.5 rounded-2xl hover:bg-sky-100 transition-colors disabled:opacity-50"
-          >
-            <BellPlus size={13} />
-            Simulate New Order
-          </button>
         </div>
 
         {/* Empty State */}

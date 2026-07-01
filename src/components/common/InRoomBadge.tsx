@@ -1,3 +1,5 @@
+import { UserRound, DoorOpen } from 'lucide-react';
+
 interface InRoomBadgeProps {
   isInRoom: boolean;
   orderType?: 'delivery' | 'cleaning';
@@ -10,16 +12,22 @@ export function InRoomBadge({ isInRoom, orderType = 'delivery', className = '' }
   const highlightGreen =
     orderType === 'cleaning' ? !isInRoom : isInRoom;
 
+  const bgClass = highlightGreen
+    ? 'bg-emerald-50 ring-emerald-200'
+    : 'bg-slate-100 ring-slate-200';
+  const iconColor = highlightGreen
+    ? 'text-emerald-600'
+    : 'text-slate-400';
+
   return (
-    <div className={`flex items-center gap-1 ${className}`}>
-      <span
-        className={`inline-block w-2 h-2 rounded-full ${highlightGreen ? 'bg-emerald-500' : 'bg-slate-400'}`}
-      />
-      <span
-        className={`text-[10px] font-semibold uppercase tracking-wider ${highlightGreen ? 'text-emerald-600' : 'text-slate-500'}`}
-      >
-        {isInRoom ? 'Occupied' : 'Unmanned'}
-      </span>
-    </div>
+    <span
+      title={isInRoom ? 'Occupied - Guest in room' : 'Unmanned - Guest out'}
+      className={`inline-flex items-center justify-center w-[30px] h-[30px] rounded-full ring-1.5 ${bgClass} ${className}`}
+    >
+      {isInRoom
+        ? <UserRound size={17} strokeWidth={2} className={iconColor} />
+        : <DoorOpen size={17} strokeWidth={2} className={iconColor} />
+      }
+    </span>
   );
 }
