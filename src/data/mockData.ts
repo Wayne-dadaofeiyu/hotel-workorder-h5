@@ -165,35 +165,10 @@ const SPECIAL_NOTES_POOL: (string | undefined)[] = [
   undefined,
 ];
 
-// ============================================================
-//  0314 演示样板房 - 专用数据池
-// ============================================================
-const DEMO_ROOM = '0314';
-const DEMO_GUEST_NAMES = [
-  'James Wilson', 'Sarah Johnson', 'Robert Chen',
-  'Emma Thompson', 'Maria Garcia', 'Michael Brown',
-];
-
-const DEMO_DELIVERY_ITEMS = [
-  'Extra towels (4) and 2 soft pillows',
-  'Room service menu and wine glass set',
-  'Toiletries set - toothbrush, toothpaste, shampoo',
-  'Coffee maker and coffee pods',
-  'Fruit basket and welcome drink',
-  'Baby crib and extra bedding',
-];
-
-const DEMO_CLEANING_ITEMS = [
-  'Standard room cleaning',
-  'Towel refresh and bed making',
-  'Turndown service with chocolate',
-  'Full room cleaning and linen change',
-];
 
 // ============================================================
 //  随机生成 Mock 数据
 //  规则：同一服务类型下，每个房号最多出现 1 次
-//  0314 演示样板房始终 1 送物 + 1 打扫，排在最前面
 // ============================================================
 
 export function generateMockOrders(): WorkOrder[] {
@@ -202,36 +177,7 @@ export function generateMockOrders(): WorkOrder[] {
 
   const orders: WorkOrder[] = [];
 
-  // --- 0314 演示样板房：始终 1 送物 + 1 打扫，时间最新，排在最前面 ---
-  const demoGuest = rng.pick(DEMO_GUEST_NAMES);
-
-  // 0314 送物
-  orders.push({
-    id: generateOrderId(),
-    type: 'delivery',
-    roomNumber: DEMO_ROOM,
-    guestName: demoGuest,
-    isInRoom: true,
-    description: rng.pick(DEMO_DELIVERY_ITEMS),
-    orderedAt: minutesAgo(rng.int(1, 4)),
-    status: 'pending',
-  });
-
-  // 0314 打扫
-  const cleaningAgo = rng.int(1, 5);
-  orders.push({
-    id: generateOrderId(),
-    type: 'cleaning',
-    roomNumber: DEMO_ROOM,
-    guestName: demoGuest,
-    isInRoom: true,
-    description: rng.pick(DEMO_CLEANING_ITEMS),
-    orderedAt: minutesAgo(cleaningAgo),
-    scheduledAt: minutesFromNow(rng.int(25, 60)),
-    status: 'pending',
-  });
-
-  // --- 其他房间：每个房间在每个服务类型下最多 1 条 ---
+  // --- 每个房间在每个服务类型下最多 1 条 ---
   const deliveryCount = rng.int(3, 7);  // 3~6 条送物
   const cleaningCount = rng.int(3, 7);  // 3~6 条打扫
 
@@ -274,13 +220,8 @@ export function generateMockOrders(): WorkOrder[] {
     orders.push(order);
   }
 
-  // 0314 房始终排最前，其余按时间倒序
-  const demoOrders = orders.filter(o => o.roomNumber === DEMO_ROOM);
-  const otherOrders = orders
-    .filter(o => o.roomNumber !== DEMO_ROOM)
-    .sort((a, b) => new Date(b.orderedAt).getTime() - new Date(a.orderedAt).getTime());
-
-  return [...demoOrders, ...otherOrders];
+  // 按时间倒序排列
+  return orders.sort((a, b) => new Date(b.orderedAt).getTime() - new Date(a.orderedAt).getTime());
 }
 
 export const MOCK_OPERATORS: Operator[] = [
