@@ -1,8 +1,7 @@
-import React, { createContext, useContext, useReducer, useEffect, useCallback } from 'react';
+import React, { createContext, useContext, useReducer, useCallback } from 'react';
 import { WorkOrder, AppState, AppView, ToastMessage } from '../types/workOrder';
-import { generateMockOrders, MOCK_OPERATORS } from '../data/mockData';
+import { generateMockOrders } from '../data/mockData';
 
-const STORAGE_KEY = 'hotel-workorders';
 const OPERATOR_KEY = 'hotel-operator';
 
 type Action =
@@ -80,9 +79,6 @@ interface WorkOrderContextType {
 const WorkOrderContext = createContext<WorkOrderContextType | null>(null);
 
 export function WorkOrderProvider({ children }: { children: React.ReactNode }) {
-  // 清除旧版本遗留的 localStorage 数据，避免累积旧订单
-  localStorage.removeItem(STORAGE_KEY);
-
   const [state, dispatch] = useReducer(appReducer, {
     ...initialState,
     orders: generateMockOrders(),

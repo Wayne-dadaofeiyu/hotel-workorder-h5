@@ -10,7 +10,6 @@ import type { WorkOrder } from '../types/workOrder';
 
 const DEMO_ROOM = '0314';
 const DEMO_GUEST = 'David';
-const DEMO_0314_FIRED_KEY = 'hotel-0314-demo-fired';
 
 export function PendingListPage() {
   const { state, dispatch, showToast } = useWorkOrder();
@@ -27,16 +26,14 @@ export function PendingListPage() {
     return () => clearInterval(interval);
   }, []);
 
-  // Demo: when switching to Cleaning tab, auto-inject Room 0314 order (once per session)
+  // Demo: when switching to Cleaning tab, auto-inject Room 0314 order
+  // Creates once per page lifetime — if completed, does NOT re-create until page reload
   useEffect(() => {
     if (state.activeTab !== 'cleaning') return;
 
-    // sessionStorage guard — survives React 18 Strict Mode double-mount
-    if (sessionStorage.getItem(DEMO_0314_FIRED_KEY)) return;
-
-    // Check if Room 0314 already has a pending cleaning order
+    // Check if Room 0314 already exists (pending or completed) in this page lifetime
     const exists = state.orders.some(
-      (o) => o.roomNumber === DEMO_ROOM && o.type === 'cleaning' && o.status !== 'completed'
+      (o) => o.roomNumber === DEMO_ROOM && o.type === 'cleaning'
     );
     if (exists) return;
 
@@ -55,7 +52,6 @@ export function PendingListPage() {
         status: 'pending',
       };
       dispatch({ type: 'ADD_ORDER', payload: newOrder });
-      sessionStorage.setItem(DEMO_0314_FIRED_KEY, '1');
       showToast(`New cleaning request from Room ${DEMO_ROOM}`, 'success');
     }, 600);
 

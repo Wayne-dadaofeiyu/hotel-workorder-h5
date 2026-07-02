@@ -100,6 +100,20 @@ const ROOM_NUMBERS = [
   '1350', '1351',
 ];
 
+/** 固定房号 → 入住人名称映射 */
+const ROOM_GUEST_MAP: Record<string, string> = {
+  '1002': 'Jack Ho',
+  '1007': 'Awen',
+  '1107': 'Ama',
+  '1108': 'Jack',
+  '1252': 'Lucy',
+};
+
+/** 根据房号获取 guestName：有固定映射则用映射，否则随机选取 */
+function getGuestName(rng: SeededRandom, roomNumber: string): string {
+  return ROOM_GUEST_MAP[roomNumber] ?? rng.pick(GUEST_NAMES);
+}
+
 const DELIVERY_ITEMS = [
   'Extra towels (4) and 2 soft pillows',
   'Room service menu and wine glass set',
@@ -190,7 +204,7 @@ export function generateMockOrders(): WorkOrder[] {
       id: generateOrderId(),
       type: 'delivery',
       roomNumber: room,
-      guestName: rng.pick(GUEST_NAMES),
+      guestName: getGuestName(rng, room),
       isInRoom: rng.chance(0.7),
       description: rng.pick(DELIVERY_ITEMS),
       orderedAt: minutesAgo(ago),
@@ -209,7 +223,7 @@ export function generateMockOrders(): WorkOrder[] {
       id: generateOrderId(),
       type: 'cleaning',
       roomNumber: room,
-      guestName: rng.pick(GUEST_NAMES),
+      guestName: getGuestName(rng, room),
       isInRoom: rng.chance(0.3), // 打扫时客人多半不在房
       description: rng.pick(CLEANING_ITEMS),
       orderedAt: minutesAgo(ago),

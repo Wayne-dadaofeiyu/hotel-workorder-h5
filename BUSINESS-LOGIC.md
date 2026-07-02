@@ -120,7 +120,10 @@
 0314 是固定演示样板房，切换到 **Cleaning tab** 时自动注入一条即时打扫工单：
 - 客人 `David`，状态「在房」(`isInRoom: true`)
 - 特殊备注 `"Guest is waiting in the room"`
-- 同一 session 只触发一次（sessionStorage 防抖）
+- 每次页面生命周期内仅创建一次：检查 `state.orders` 中是否已存在 0314 cleaning（不限状态）
+  - 不存在 → 创建（首次加载/刷新后）
+  - 已存在（pending 或 completed）→ 不创建
+- 完成 0314 后同 session 内不再重建，刷新/重新进入链接则重新开始
 - 0314 **不在**随机房号池中，只有通过此机制产生
 
 ### 4.3 同类型不重复房间
