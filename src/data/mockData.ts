@@ -166,9 +166,9 @@ const SPECIAL_NOTES_POOL: (string | undefined)[] = [
 ];
 
 // ============================================================
-//  1205 演示用房 - 专用数据池
+//  0314 演示样板房 - 专用数据池
 // ============================================================
-const DEMO_ROOM = '1205';
+const DEMO_ROOM = '0314';
 const DEMO_GUEST_NAMES = [
   'James Wilson', 'Sarah Johnson', 'Robert Chen',
   'Emma Thompson', 'Maria Garcia', 'Michael Brown',
@@ -193,7 +193,7 @@ const DEMO_CLEANING_ITEMS = [
 // ============================================================
 //  随机生成 Mock 数据
 //  规则：同一服务类型下，每个房号最多出现 1 次
-//  1205 演示用房始终 1 送物 + 1 打扫，排在最前面
+//  0314 演示样板房始终 1 送物 + 1 打扫，排在最前面
 // ============================================================
 
 export function generateMockOrders(): WorkOrder[] {
@@ -202,10 +202,10 @@ export function generateMockOrders(): WorkOrder[] {
 
   const orders: WorkOrder[] = [];
 
-  // --- 1205 演示用房：始终 1 送物 + 1 打扫，时间最新，排在最前面 ---
+  // --- 0314 演示样板房：始终 1 送物 + 1 打扫，时间最新，排在最前面 ---
   const demoGuest = rng.pick(DEMO_GUEST_NAMES);
 
-  // 1205 送物
+  // 0314 送物
   orders.push({
     id: generateOrderId(),
     type: 'delivery',
@@ -217,7 +217,7 @@ export function generateMockOrders(): WorkOrder[] {
     status: 'pending',
   });
 
-  // 1205 打扫
+  // 0314 打扫
   const cleaningAgo = rng.int(1, 5);
   orders.push({
     id: generateOrderId(),
@@ -274,7 +274,7 @@ export function generateMockOrders(): WorkOrder[] {
     orders.push(order);
   }
 
-  // 1205 房始终排最前，其余按时间倒序
+  // 0314 房始终排最前，其余按时间倒序
   const demoOrders = orders.filter(o => o.roomNumber === DEMO_ROOM);
   const otherOrders = orders
     .filter(o => o.roomNumber !== DEMO_ROOM)
