@@ -21,7 +21,7 @@ function getSessionSeed(): number {
   return seed;
 }
 
-/** 基于种子的伪随机数生成器（Mulberry32 算法变体） */
+/** 基于种子的伪随机数生成器（Lehmer / Park-Miller LCG） */
 class SeededRandom {
   private s: number;
   constructor(seed: number) { this.s = seed | 0; }
@@ -250,12 +250,7 @@ export function generateNewOrder(existingOrders?: WorkOrder[]): WorkOrder | null
     'Bed making and linen change',
   ];
 
-  const allRooms = [
-    '1001', '1002', '1003', '1004', '1005', '1006', '1007', '1008',
-    '1101', '1102', '1103', '1104', '1105', '1106', '1107', '1108',
-    '1250', '1251', '1252', '1253', '1254', '1255', '1256', '1257', '1258',
-    '1350', '1351',
-  ];
+  // 复用全局 ROOM_NUMBERS，避免重复定义
   const guestNames = ['Chris Lee', 'Anna Smith', 'Tom Davis', 'Lucy Liu', 'Mark Taylor', 'Nina Patel'];
 
   const isDelivery = Math.random() > 0.4;
@@ -267,7 +262,7 @@ export function generateNewOrder(existingOrders?: WorkOrder[]): WorkOrder | null
       .filter((o) => o.type === type && o.status !== 'completed')
       .map((o) => o.roomNumber)
   );
-  const availableRooms = allRooms.filter((r) => !usedRooms.has(r));
+  const availableRooms = ROOM_NUMBERS.filter((r) => !usedRooms.has(r));
 
   // 无可选房间时跳过
   if (availableRooms.length === 0) return null;

@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Package } from 'lucide-react';
 import { TabBar } from '../components/pending/TabBar';
@@ -10,11 +10,11 @@ import type { WorkOrder } from '../types/workOrder';
 
 const DEMO_ROOM = '0314';
 const DEMO_GUEST = 'David';
+const DEMO_0314_FIRED_KEY = 'hotel-0314-demo-fired';
 
 export function PendingListPage() {
   const { state, dispatch, showToast } = useWorkOrder();
-  const [tick, setTick] = useState(0);
-  const demo0314Fired = useRef(false);
+  const [forceTick, setForceTick] = useState(0);
 
   const filteredOrders = state.orders.filter((o) => {
     if (o.status === 'completed') return false;
@@ -23,13 +23,16 @@ export function PendingListPage() {
 
   // Refresh every 60s to update URGENT status
   useEffect(() => {
-    const interval = setInterval(() => setTick((t) => t + 1), 60000);
+    const interval = setInterval(() => setForceTick((t) => t + 1), 60000);
     return () => clearInterval(interval);
   }, []);
 
   // Demo: when switching to Cleaning tab, auto-inject Room 0314 order (once per session)
   useEffect(() => {
-    if (state.activeTab !== 'cleaning' || demo0314Fired.current) return;
+    if (state.activeTab !== 'cleaning') return;
+
+    // sessionStorage guard — survives React 18 Strict Mode double-mount
+    if (sessionStorage.getItem(DEMO_0314_FIRED_KEY)) return;
 
     // Check if Room 0314 already has a pending cleaning order
     const exists = state.orders.some(
@@ -37,7 +40,7 @@ export function PendingListPage() {
     );
     if (exists) return;
 
-    demo0314Fired.current = true;
+    sessionStorage.setItem(DEMO_0314_FIRED_KEY, '1');
     const timer = setTimeout(() => {
       const now = Date.now();
       const newOrder: WorkOrder = {
@@ -57,7 +60,7 @@ export function PendingListPage() {
     }, 600);
 
     return () => clearTimeout(timer);
-  }, [state.activeTab, dispatch, showToast]);
+  }, [state.activeTab, state.orders, dispatch, showToast]);
 
   // Simulate new order every 30s in demo mode (only when on Delivery tab)
   useEffect(() => {
@@ -79,7 +82,7 @@ export function PendingListPage() {
   }, [state.activeTab, state.orders, dispatch, showToast]);
 
   return (
-    <div className="h-full flex flex-col bg-gradient-to-b from-sky-50/50 to-white">
+    <div data-force-tick={forceTick} className="h-full flex flex-col bg-gradient-to-b from-sky-50/50 to-white">
       <div className="pt-14">
         <TabBar />
       </div>
