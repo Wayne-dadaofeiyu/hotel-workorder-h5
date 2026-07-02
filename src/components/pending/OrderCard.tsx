@@ -2,7 +2,7 @@ import { motion } from 'framer-motion';
 import { Package, Sparkles, Clock, AlertCircle, Calendar } from 'lucide-react';
 import { InRoomBadge } from '../common/InRoomBadge';
 import { useWorkOrder } from '../../context/WorkOrderContext';
-import { isUrgent, formatTimeShort } from '../../utils/orderUtils';
+import { isUrgent, getUrgentReason, formatTimeShort } from '../../utils/orderUtils';
 
 interface OrderCardProps {
   order: {
@@ -63,7 +63,7 @@ export function OrderCard({ order }: OrderCardProps) {
           {urgent && (
             <span className="flex items-center gap-1 text-red-500">
               <AlertCircle size={14} />
-              <span className="text-[10px] font-bold uppercase">Urgent</span>
+              <span className="text-[10px] font-bold">{getUrgentReason(order)}</span>
             </span>
           )}
         </div>

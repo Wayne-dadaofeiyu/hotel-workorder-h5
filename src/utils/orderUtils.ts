@@ -27,6 +27,23 @@ export function isCleaningUrgent(scheduledAt?: string): boolean {
   return diffMin >= 0 && diffMin < 30;
 }
 
+/**
+ * 获取紧急原因的语义化描述
+ * - 送物：客人已等待多久 → "Waited 18m"
+ * - 打扫：距离截止时间还有多久 → "Due in 7m"
+ */
+export function getUrgentReason(order: { type: string; orderedAt: string; scheduledAt?: string }): string {
+  if (order.type === 'delivery') {
+    const waitedMin = Math.floor((Date.now() - new Date(order.orderedAt).getTime()) / 60000);
+    return `Waited ${waitedMin}m`;
+  }
+  if (order.type === 'cleaning' && order.scheduledAt) {
+    const leftMin = Math.max(0, Math.ceil((new Date(order.scheduledAt).getTime() - Date.now()) / 60000));
+    return `Due in ${leftMin}m`;
+  }
+  return '';
+}
+
 /** 格式化时间为可读字符串，如 "3:00 PM" */
 export function formatTimeShort(iso: string): string {
   return new Date(iso).toLocaleString('en-US', {
