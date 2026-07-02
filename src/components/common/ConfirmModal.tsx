@@ -1,5 +1,5 @@
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Check } from 'lucide-react';
+import { Check } from 'lucide-react';
 import { useWorkOrder } from '../../context/WorkOrderContext';
 import { MOCK_OPERATORS } from '../../data/mockData';
 

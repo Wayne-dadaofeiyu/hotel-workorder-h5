@@ -19,7 +19,7 @@ export function BottomNav() {
             <button
               key={tab.id}
               onClick={() => dispatch({ type: 'SET_VIEW', payload: { view: tab.id as 'pending' | 'history' } })}
-              className={`flex flex-col items-center gap-1 px-6 py-2 rounded-2xl transition-all ${
+              className={`flex flex-col items-center gap-1 px-6 py-2 rounded-2xl transition-all relative ${
                 isActive ? 'text-sky-500' : 'text-slate-400'
               }`}
             >

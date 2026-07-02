@@ -1,6 +1,6 @@
 import { useState, useMemo } from 'react';
 import { motion } from 'framer-motion';
-import { Search, CheckCircle2, TrendingUp, Clock, Package, Sparkles, User } from 'lucide-react';
+import { Search, CheckCircle2, TrendingUp, Clock, User } from 'lucide-react';
 import { useWorkOrder } from '../context/WorkOrderContext';
 
 export function HistoryPage() {
