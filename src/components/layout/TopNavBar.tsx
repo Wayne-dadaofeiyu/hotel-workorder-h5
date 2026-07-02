@@ -24,7 +24,6 @@ export function TopNavBar() {
 
   const handleChangePassword = () => {
     setDropdownOpen(false);
-    showToast('Demo mode - password change not available', 'info');
   };
 
   const handleSwitchAccount = () => {
