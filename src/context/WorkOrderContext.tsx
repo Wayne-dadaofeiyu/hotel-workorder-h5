@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useReducer, useEffect, useCallback } from 'react';
 import { WorkOrder, AppState, AppView, ToastMessage } from '../types/workOrder';
-import { generateMockOrders, MOCK_OPERATORS, generateNewOrder } from '../data/mockData';
+import { generateMockOrders, MOCK_OPERATORS } from '../data/mockData';
 
 const STORAGE_KEY = 'hotel-workorders';
 const OPERATOR_KEY = 'hotel-operator';

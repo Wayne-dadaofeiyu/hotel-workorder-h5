@@ -1,6 +1,6 @@
 export type OrderType = 'delivery' | 'cleaning';
 
-export type OrderStatus = 'pending' | 'in_progress' | 'completed';
+export type OrderStatus = 'pending' | 'completed';
 
 export interface WorkOrder {
   id: string;
