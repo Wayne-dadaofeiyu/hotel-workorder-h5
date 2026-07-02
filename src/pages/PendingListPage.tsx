@@ -40,7 +40,6 @@ export function PendingListPage() {
     );
     if (exists) return;
 
-    sessionStorage.setItem(DEMO_0314_FIRED_KEY, '1');
     const timer = setTimeout(() => {
       const now = Date.now();
       const newOrder: WorkOrder = {
@@ -56,6 +55,7 @@ export function PendingListPage() {
         status: 'pending',
       };
       dispatch({ type: 'ADD_ORDER', payload: newOrder });
+      sessionStorage.setItem(DEMO_0314_FIRED_KEY, '1');
       showToast(`New cleaning request from Room ${DEMO_ROOM}`, 'success');
     }, 600);
 
